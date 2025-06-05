@@ -1,0 +1,108 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222 84% 4.9%;
+  --muted: 210 40% 98%;
+  --muted-foreground: 215 16% 46.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 84% 4.9%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --primary: 221 83% 53%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --accent: 210 40% 96%;
+  --accent-foreground: 222 47% 11%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+  --ring: 221 83% 53%;
+  --radius: 0.5rem;
+  --chart-1: 221 83% 53%;
+  --chart-2: 212 95% 68%;
+  --chart-3: 216 92% 79%;
+  --chart-4: 210 98% 78%;
+  --chart-5: 212 97% 87%;
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 222 84% 4.9%;
+  --sidebar-primary: 221 83% 53%;
+  --sidebar-primary-foreground: 210 40% 98%;
+  --sidebar-accent: 210 40% 96%;
+  --sidebar-accent-foreground: 222 47% 11%;
+  --sidebar-border: 214 32% 91%;
+  --sidebar-ring: 221 83% 53%;
+}
+
+.dark {
+  --background: 222 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 65%;
+  --popover: 222 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --card: 222 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --border: 217 33% 17%;
+  --input: 217 33% 17%;
+  --primary: 221 83% 53%;
+  --primary-foreground: 222 84% 4.9%;
+  --secondary: 217 33% 17%;
+  --secondary-foreground: 210 40% 98%;
+  --accent: 217 33% 17%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 210 40% 98%;
+  --ring: 221 83% 53%;
+  --chart-1: 221 83% 53%;
+  --chart-2: 212 95% 68%;
+  --chart-3: 216 92% 79%;
+  --chart-4: 210 98% 78%;
+  --chart-5: 212 97% 87%;
+  --sidebar-background: 222 84% 4.9%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-primary: 221 83% 53%;
+  --sidebar-primary-foreground: 222 84% 4.9%;
+  --sidebar-accent: 217 33% 17%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-border: 217 33% 17%;
+  --sidebar-ring: 221 83% 53%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .line-clamp-4 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+  }
+}
