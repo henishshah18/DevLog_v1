@@ -3,10 +3,8 @@ import type { Config } from 'drizzle-kit';
 export default {
   schema: './shared/schema.ts',
   out: './drizzle',
-  driver: 'pg',
+  driver: 'sqlite',
   dbCredentials: {
-    connectionString: process.env.DATABASE_URL || '',
+    url: 'sqlite.db'
   },
-  verbose: true,
-  strict: true,
 } satisfies Config;
