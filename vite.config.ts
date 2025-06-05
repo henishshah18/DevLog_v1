@@ -1,21 +1,30 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin, type PluginOption } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
-import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
-export default defineConfig({
-  plugins: [
-    react(),
-    runtimeErrorOverlay(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
-        ]
-      : []),
-  ],
+// Create an async function to load plugins
+async function getPlugins(): Promise<PluginOption[]> {
+  const plugins: PluginOption[] = [react()];
+  
+  try {
+    // Dynamically import ESM plugins
+    const { default: runtimeErrorOverlay } = await import("@replit/vite-plugin-runtime-error-modal");
+    plugins.push(runtimeErrorOverlay());
+
+    if (process.env.NODE_ENV !== "production" && process.env.REPL_ID !== undefined) {
+      const cartographer = await import("@replit/vite-plugin-cartographer");
+      plugins.push(cartographer.cartographer());
+    }
+  } catch (error) {
+    console.warn("Warning: Some plugins failed to load:", error);
+  }
+
+  return plugins;
+}
+
+// Export an async config
+export default defineConfig(async () => ({
+  plugins: await getPlugins(),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./client/src"),
@@ -33,7 +42,7 @@ export default defineConfig({
         server: path.resolve(__dirname, "server/index.ts")
       },
       output: {
-        entryFileNames: (chunkInfo) => {
+        entryFileNames: (chunkInfo: { name?: string }) => {
           return chunkInfo.name === 'server' ? 'server/[name].js' : 'assets/[name]-[hash].js';
         }
       }
@@ -52,4 +61,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));
