@@ -92,6 +92,7 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
+  teamId: true,
 }).extend({
   confirmPassword: z.string().min(6),
   teamCode: z.string().optional(),

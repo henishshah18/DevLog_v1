@@ -21,8 +21,8 @@ function Router() {
       <ProtectedRoute path="/my-logs" component={MyLogs} />
       <ProtectedRoute path="/team-logs" component={TeamLogs} />
       <ProtectedRoute path="/team-management" component={TeamManagement} />
-      <Route path="/auth" component={AuthPage} />
-      <Route component={NotFound} />
+      <Route path="/auth"><AuthPage /></Route>
+      <Route><NotFound /></Route>
     </Switch>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,13 @@ export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
 
-  // Redirect if already logged in
-  if (user) {
-    const redirectPath = user.role === "manager" ? "/manager" : "/";
-    setLocation(redirectPath);
-    return null;
-  }
+  // Redirect if already logged in - use useEffect to avoid calling during render
+  useEffect(() => {
+    if (user) {
+      const redirectPath = user.role === "manager" ? "/manager" : "/";
+      setLocation(redirectPath);
+    }
+  }, [user, setLocation]);
 
   const loginForm = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
