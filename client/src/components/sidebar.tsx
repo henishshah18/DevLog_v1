@@ -1,23 +1,13 @@
-import { Link, useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useAuth } from "@/hooks/use-auth";
-import {
-  BarChart,
-  Users,
-  FileText,
-  LogOut,
-  Home
-} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/use-auth";
 import { 
-  Home as HomeIcon, 
-  FileText as FileTextIcon, 
-  Users as UsersIcon, 
-  Settings, 
-  LogOut as LogOutIcon, 
+  Home, 
+  FileText, 
+  Users, 
+  LogOut, 
   BarChart3,
   UserCheck
 } from "lucide-react";
@@ -38,13 +28,13 @@ export function Sidebar() {
     {
       label: "Dashboard",
       path: "/",
-      icon: HomeIcon,
+      icon: Home,
       roles: ["developer", "manager"]
     },
     {
       label: "My Logs",
       path: "/my-logs",
-      icon: FileTextIcon,
+      icon: FileText,
       roles: ["developer"]
     },
     {
@@ -62,7 +52,7 @@ export function Sidebar() {
     {
       label: "Team Management",
       path: "/team-management",
-      icon: UsersIcon,
+      icon: Users,
       roles: ["manager"]
     }
   ];
@@ -132,7 +122,7 @@ export function Sidebar() {
           disabled={logoutMutation.isPending}
           className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground"
         >
-          <LogOutIcon className="h-4 w-4" />
+          <LogOut className="h-4 w-4" />
           {logoutMutation.isPending ? "Signing out..." : "Sign Out"}
         </Button>
         
