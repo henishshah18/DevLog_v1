@@ -65,7 +65,7 @@ export class DatabaseStorage implements IStorage {
         password: insertUser.password,
         fullName: insertUser.fullName,
         role: insertUser.role,
-        teamId: insertUser.teamId,
+        // teamId will be set later when joining a team
       })
       .returning();
     return user;

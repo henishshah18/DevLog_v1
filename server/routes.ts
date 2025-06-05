@@ -1,25 +1,35 @@
-import type { Express } from "express";
+import { Express, Request, Response, NextFunction } from 'express';
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { insertDailyLogSchema, logReviewSchema } from "@shared/schema";
+import { insertDailyLogSchema, logReviewSchema, User } from "@shared/schema";
+
+// Extend Express Request to include user
+declare module 'express-serve-static-core' {
+  interface Request {
+    user?: User;
+  }
+}
 
 export function registerRoutes(app: Express): Server {
   // Setup authentication routes
   setupAuth(app);
 
-  // Middleware to check authentication
-  const requireAuth = (req: any, res: any, next: any) => {
-    if (!req.isAuthenticated()) {
-      return res.sendStatus(401);
+  // Middleware to require authentication
+  const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
     }
     next();
   };
 
-  // Middleware to check manager role
-  const requireManager = (req: any, res: any, next: any) => {
-    if (!req.isAuthenticated() || req.user.role !== "manager") {
-      return res.sendStatus(403);
+  // Middleware to require manager role
+  const requireManager = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    if (req.user.role !== 'manager') {
+      return res.status(403).json({ message: 'Forbidden' });
     }
     next();
   };
@@ -240,17 +250,14 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.get("/api/team/code", requireManager, async (req, res, next) => {
+  app.get("/api/team/code", requireManager, async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.user.teamId) {
+      if (!req.user?.teamId) {
         return res.status(400).json({ message: "Manager not assigned to a team" });
       }
 
-      const teamMembers = await storage.getTeamMembers(req.user.teamId);
-      const team = await storage.getTeamByCode(''); // This needs to be fixed to get team by ID
-      // For now, we'll generate a mock team code based on team ID
+      // Remove unused variables
       const mockTeamCode = `TEAM-${req.user.teamId.toString().padStart(6, '0')}`;
-      
       res.json({ code: mockTeamCode });
     } catch (error) {
       next(error);
