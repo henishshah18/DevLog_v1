@@ -34,6 +34,11 @@ export default function DeveloperDashboard() {
   const [teamCode, setTeamCode] = useState("");
   const [copiedCode, setCopiedCode] = useState(false);
 
+  const { data: availableTeams = [] } = useQuery<{ id: number; name: string; code: string }[]>({
+    queryKey: ["/api/available-teams"],
+    enabled: showTeamJoin,
+  });
+
   const predefinedBlockers = [
     "Dependencies", "Testing", "Code Review", "Deployment", "Environment", "Design"
   ];
@@ -115,6 +120,10 @@ export default function DeveloperDashboard() {
   const joinTeamMutation = useMutation({
     mutationFn: async (code: string) => {
       const res = await apiRequest("POST", "/api/team/join", { code });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to join team");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -123,6 +132,7 @@ export default function DeveloperDashboard() {
         description: "You have been added to the team.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user-team"] });
       setShowTeamJoin(false);
       setTeamCode("");
     },
@@ -168,8 +178,8 @@ export default function DeveloperDashboard() {
   };
 
   const handleJoinTeam = () => {
-    if (teamCode.trim()) {
-      joinTeamMutation.mutate(teamCode.trim());
+    if (teamCode) {
+      joinTeamMutation.mutate(teamCode);
     }
   };
 
@@ -245,23 +255,35 @@ export default function DeveloperDashboard() {
                     </Button>
                   ) : (
                     <div className="flex gap-2">
-                      <Input
-                        placeholder="Enter team code"
+                      <Select
                         value={teamCode}
-                        onChange={(e) => setTeamCode(e.target.value)}
-                        className="w-32"
-                      />
+                        onValueChange={setTeamCode}
+                      >
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder="Select a team" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableTeams.map((team) => (
+                            <SelectItem key={team.id} value={team.code}>
+                              {team.name} ({team.code})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <Button 
                         size="sm" 
                         onClick={handleJoinTeam}
-                        disabled={joinTeamMutation.isPending}
+                        disabled={joinTeamMutation.isPending || !teamCode}
                       >
                         Join
                       </Button>
                       <Button 
                         size="sm" 
                         variant="ghost" 
-                        onClick={() => setShowTeamJoin(false)}
+                        onClick={() => {
+                          setShowTeamJoin(false);
+                          setTeamCode("");
+                        }}
                       >
                         Cancel
                       </Button>

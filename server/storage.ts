@@ -37,6 +37,8 @@ export interface IStorage {
   getProductivityData(userId: number, startDate: string, endDate: string): Promise<DailyLog[]>;
 
   sessionStore: session.Store;
+
+  getAvailableTeams(): Promise<{ id: number; name: string; code: string }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -85,6 +87,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Create the user
+    const now = new Date();
     const [user] = await db
       .insert(users)
       .values({
@@ -93,7 +96,7 @@ export class DatabaseStorage implements IStorage {
         fullName: insertUser.fullName,
         role: insertUser.role,
         teamId: teamId,
-        createdAt: new Date(),
+        createdAt: now,
       })
       .returning();
 
@@ -114,7 +117,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTeamByCode(code: string): Promise<Team | undefined> {
-    const [team] = await db.select().from(teams).where(eq(teams.code, code));
+    // Normalize the code by trimming whitespace and converting to uppercase
+    const normalizedCode = code.trim().toUpperCase();
+    const [team] = await db
+      .select()
+      .from(teams)
+      .where(sql`UPPER(${teams.code}) = ${normalizedCode}`);
     return team || undefined;
   }
 
@@ -135,17 +143,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async generateTeamCode(): Promise<string> {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code: string;
+    // Get the count of existing teams
+    const [result] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(teams);
     
-    do {
-      code = 'TEAM-';
-      for (let i = 0; i < 6; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-    } while (await this.getTeamByCode(code));
-    
-    return code;
+    // Generate the next code in sequence (1-based)
+    const nextNumber = (result?.count || 0) + 1;
+    return `TEAM-${nextNumber.toString().padStart(6, '0')}`;
   }
 
   async getTeamMembers(teamId: number): Promise<User[]> {
@@ -311,6 +316,17 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(dailyLogs.date);
+  }
+
+  async getAvailableTeams(): Promise<{ id: number; name: string; code: string }[]> {
+    return await db
+      .select({
+        id: teams.id,
+        name: teams.name,
+        code: teams.code
+      })
+      .from(teams)
+      .orderBy(teams.name);
   }
 }
 

@@ -14,7 +14,12 @@ declare global {
 }
 
 async function comparePasswords(supplied: string, stored: string) {
-  return bcrypt.compare(supplied, stored);
+  try {
+    return await bcrypt.compare(supplied, stored);
+  } catch (error) {
+    console.error('Error comparing passwords:', error);
+    return false;
+  }
 }
 
 export function setupAuth(app: Express) {
@@ -45,9 +50,15 @@ export function setupAuth(app: Express) {
       async (email, password, done) => {
         try {
           const user = await storage.getUserByEmail(email);
-          if (!user || !(await comparePasswords(password, user.password))) {
+          if (!user) {
             return done(null, false);
           }
+          
+          const isValidPassword = await comparePasswords(password, user.password);
+          if (!isValidPassword) {
+            return done(null, false);
+          }
+          
           return done(null, user);
         } catch (error) {
           return done(error);
@@ -73,14 +84,16 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: validation.error.errors[0].message });
       }
 
-      const { email, password, fullName, role, teamCode, confirmPassword } = validation.data;
+      const { email, password, fullName, role, teamCode } = validation.data;
 
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
         return res.status(400).json({ message: "Email already registered" });
       }
 
-      const hashedPassword = await bcrypt.hash(password, 10);
+      // Hash password with bcrypt
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
 
       const user = await storage.createUser({
         email,
@@ -88,7 +101,7 @@ export function setupAuth(app: Express) {
         fullName,
         role,
         teamCode,
-        confirmPassword,
+        confirmPassword: password, // Original password for schema validation
       });
 
       // Update team's managerId if this is a manager
@@ -97,10 +110,14 @@ export function setupAuth(app: Express) {
       }
 
       req.login(user, (err) => {
-        if (err) return res.status(500).json({ message: "Error logging in" });
+        if (err) {
+          console.error('Login error after registration:', err);
+          return res.status(500).json({ message: "Error logging in" });
+        }
         res.status(201).json(user);
       });
     } catch (error) {
+      console.error('Registration error:', error);
       res.status(500).json({ message: "Error registering user" });
     }
   });

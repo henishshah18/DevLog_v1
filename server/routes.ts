@@ -272,8 +272,12 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Manager not assigned to a team" });
       }
 
-      const mockTeamCode = `TEAM-${user.teamId.toString().padStart(6, '0')}`;
-      res.json({ code: mockTeamCode });
+      const team = await storage.getTeamById(user.teamId);
+      if (!team) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+
+      res.json({ code: team.code });
     } catch (error) {
       next(error);
     }
@@ -295,6 +299,16 @@ export function registerRoutes(app: Express): Server {
       const notificationId = parseInt(req.params.id);
       await storage.markNotificationAsRead(notificationId);
       res.sendStatus(200);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Get available teams for joining
+  app.get("/api/available-teams", requireAuth, async (req, res, next) => {
+    try {
+      const teams = await storage.getAvailableTeams();
+      res.json(teams);
     } catch (error) {
       next(error);
     }
