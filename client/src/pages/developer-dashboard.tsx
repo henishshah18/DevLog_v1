@@ -58,13 +58,14 @@ export default function DeveloperDashboard() {
     mood: number;
     blockers: string;
   }>({
-    resolver: zodResolver(insertDailyLogSchema),
+    resolver: zodResolver(insertDailyLogSchema.pick({ date: true, mood: true })),
     defaultValues: {
       date: format(new Date(), "yyyy-MM-dd"),
       tasks: [{ description: "", hours: 0, minutes: 0 }],
       mood: 3,
       blockers: "",
     },
+    mode: "onTouched"
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -75,20 +76,13 @@ export default function DeveloperDashboard() {
   const submitLogMutation = useMutation({
     mutationFn: async (data: any) => {
       console.log('Submitting log data:', data);
-      const totalHours = data.tasks.reduce((sum: number, task: TaskEntry) => sum + task.hours + (task.minutes / 60), 0);
-      const logData = {
-        date: data.date,
-        tasks: data.tasks.map((task: TaskEntry) => 
-          `${task.description} (${task.hours}h ${task.minutes}m)`
-        ).join("\n"),
-        hours: Math.floor(totalHours),
-        minutes: Math.round((totalHours % 1) * 60),
-        mood: data.mood,
-        blockers: [...selectedBlockers, ...(customBlocker ? [customBlocker] : [])].join(", ")
-      };
-      console.log('Processed log data:', logData);
       try {
-        const res = await apiRequest("POST", "/api/daily-logs", logData);
+        const res = await apiRequest("POST", "/api/daily-logs", data);
+        if (!res.ok) {
+          const error = await res.json();
+          console.error('Server error:', error);
+          throw new Error(error.message || 'Failed to submit log');
+        }
         const result = await res.json();
         console.log('Submission response:', result);
         return result;
@@ -103,7 +97,12 @@ export default function DeveloperDashboard() {
         description: "Your productivity log has been saved.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/daily-logs"] });
-      form.reset();
+      form.reset({
+        date: format(new Date(), "yyyy-MM-dd"),
+        tasks: [{ description: "", hours: 0, minutes: 0 }],
+        mood: 3,
+        blockers: "",
+      });
       setSelectedBlockers([]);
       setCustomBlocker("");
     },
@@ -145,9 +144,101 @@ export default function DeveloperDashboard() {
     },
   });
 
-  const onSubmit = (data: any) => {
-    console.log('Form submitted with data:', data);
-    submitLogMutation.mutate(data);
+  const onSubmit = async (formData: any) => {
+    console.log('Form submission attempted', { formData, formState: form.formState });
+
+    // Basic form validation
+    if (!formData.date) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a date",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.tasks || formData.tasks.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please add at least one task",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate tasks
+    const validTasks = formData.tasks.filter((task: TaskEntry) => task.description.trim());
+    if (validTasks.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please add at least one task with a description",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate time entries
+    const invalidTasks = validTasks.filter(
+      (task: TaskEntry) => 
+        !task.hours && !task.minutes
+    );
+
+    if (invalidTasks.length > 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please specify time spent for all tasks",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.mood) {
+      toast({
+        title: "Validation Error",
+        description: "Please select your mood",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      console.log('Processing form data...');
+      // Calculate total hours and minutes
+      let totalMinutes = 0;
+      validTasks.forEach((task: TaskEntry) => {
+        totalMinutes += (task.hours || 0) * 60 + (task.minutes || 0);
+      });
+
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+
+      // Format tasks as a string
+      const tasksString = validTasks
+        .map((task: TaskEntry) => 
+          `${task.description.trim()} (${task.hours || 0}h ${task.minutes || 0}m)`
+        )
+        .join("\n");
+
+      // Prepare the log data according to the schema
+      const logData = {
+        date: formData.date,
+        tasks: tasksString,
+        hours,
+        minutes,
+        mood: formData.mood,
+        blockers: selectedBlockers.length > 0 ? selectedBlockers.join(", ") : undefined
+      };
+
+      console.log('Submitting log data:', logData);
+      await submitLogMutation.mutateAsync(logData);
+    } catch (error) {
+      console.error('Error in onSubmit:', error);
+      toast({
+        title: "Submission Error",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleBlockerToggle = (blocker: string) => {
@@ -351,7 +442,16 @@ export default function DeveloperDashboard() {
               </CardHeader>
               <CardContent>
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <form 
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      console.log('Form submit event triggered');
+                      const formData = form.getValues();
+                      console.log('Form values:', formData);
+                      onSubmit(formData);
+                    }} 
+                    className="space-y-4"
+                  >
                     <FormField
                       control={form.control}
                       name="date"
@@ -408,7 +508,7 @@ export default function DeveloperDashboard() {
                               {...form.register(`tasks.${index}.minutes`, { valueAsNumber: true })}
                             />
                             <span>m</span>
-                            {index > 0 && (
+                            {fields.length > 1 && (
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -500,7 +600,7 @@ export default function DeveloperDashboard() {
                     <Button 
                       type="submit" 
                       className="w-full" 
-                      disabled={submitLogMutation.isPending}
+                      onClick={() => console.log('Submit button clicked, form state:', form.formState)}
                     >
                       {submitLogMutation.isPending ? "Submitting..." : "Submit Daily Log"}
                     </Button>

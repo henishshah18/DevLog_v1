@@ -46,9 +46,15 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/daily-logs", requireAuth, async (req, res, next) => {
     try {
       const user = ensureUser(req);
+      console.log('Received log data:', req.body);
+      
       const validation = insertDailyLogSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ message: validation.error.errors[0].message });
+        console.error('Validation error:', validation.error.errors);
+        return res.status(400).json({ 
+          message: validation.error.errors[0].message,
+          errors: validation.error.errors
+        });
       }
 
       const logData = {
@@ -56,7 +62,9 @@ export function registerRoutes(app: Express): Server {
         userId: user.id,
       };
 
+      console.log('Validated log data:', logData);
       const log = await storage.createDailyLog(logData);
+      console.log('Created log:', log);
 
       // Create notification for manager if user is in a team
       if (user.teamId) {
@@ -75,6 +83,7 @@ export function registerRoutes(app: Express): Server {
 
       res.status(201).json(log);
     } catch (error) {
+      console.error('Error creating daily log:', error);
       next(error);
     }
   });

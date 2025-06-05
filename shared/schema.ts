@@ -31,11 +31,6 @@ export const dailyLogs = sqliteTable("daily_logs", {
   minutes: integer("minutes").notNull(),
   mood: integer("mood").notNull(), // 1-5 scale
   blockers: text("blockers"),
-  challenges: text("challenges"),
-  learnings: text("learnings"),
-  tasksCompleted: text("tasks_completed"),
-  productivityScore: integer("productivity_score"),
-  hoursWorked: integer("hours_worked"),
   reviewStatus: text("review_status").notNull().default('pending'), // 'pending' | 'reviewed'
   managerFeedback: text("manager_feedback"),
   reviewedAt: integer("reviewed_at", { mode: "timestamp" }),
@@ -121,11 +116,6 @@ export const insertDailyLogSchema = createInsertSchema(dailyLogs).omit({
   reviewedAt: true,
   reviewedBy: true,
   userId: true,
-  challenges: true,
-  learnings: true,
-  tasksCompleted: true,
-  productivityScore: true,
-  hoursWorked: true,
 }).extend({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
   tasks: z.string().min(1, "Tasks cannot be empty"),
