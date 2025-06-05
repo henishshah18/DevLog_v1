@@ -1,6 +1,25 @@
 {
-  "crons": [{
-    "path": "/api/cron/check-daily-logs",
-    "schedule": "30 16 * * *"
-  }]
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/server/index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "crons": [
+    {
+      "path": "/api/cron/check-daily-logs",
+      "schedule": "30 16 * * *"
+    }
+  ]
 } 
