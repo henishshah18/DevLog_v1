@@ -1,0 +1,157 @@
+Project Title: DevLog – The Developer Productivity & Daily Log Tool
+
+Project Goal:
+Build an end-to-end web platform for software developers to log daily work, track tasks, reflect on productivity, and share updates with managers/peers. The platform must be secure, user-friendly, and highly functional.
+
+Target Environment: Replit (Full Stack)
+
+Technology Stack (Recommended, but flexible for AI choice):
+* **Frontend:** React.js (with React Router for navigation), modern UI library (e.g., Material-UI, Ant Design, or Tailwind CSS for styling), rich text/Markdown editor component (e.g., React-Quill, React-MDEditor), Charting library (e.g., Chart.js, Recharts) for heatmaps.
+* **Backend:** Node.js (Express.js), PostgreSQL (or MongoDB for flexibility), JWT for authentication, Nodemailer for email notifications, cron job library for scheduled tasks.
+* **Deployment:** Docker (optional, for Replit's environment), standard web server setup.
+
+Core Features & Functionality Breakdown:
+
+1.  **Authentication System:**
+    * **User Roles:** Developer, Manager.
+    * **Security:** Implement secure JWT-based or session-based authentication.
+    * **Functionality:**
+        * User registration (Sign Up) with email, password, full name, and role selection (Developer/Manager).
+        * Managers generate a unique "Team Code" upon signup. Developers optionally enter a Team Code during signup to join a team.
+        * User login (Log In) with email and password.
+        * Password reset (Forgot Password, Reset Password via email link).
+        * Secure password hashing (e.g., bcrypt).
+        * Role-based access control for all routes and UI elements.
+
+2.  **Developer Dashboard & Logging:**
+    * **Daily Work Log Submission:**
+        * Rich Text/Markdown editor for "Tasks Completed" (supporting bold, italics, lists, code blocks).
+        * Input for "Time Spent per Task" (e.g., hours/minutes format).
+        * Mood selector (emoji or 5-point scale).
+        * Optional "Blockers" text area.
+        * Date picker, defaulting to current date, allowing past date selection.
+    * **Productivity Heatmap:**
+        * Visual calendar-like display (weekly/monthly).
+        * Color-coded cells representing productivity/log activity (e.g., based on hours logged, mood).
+        * Tooltip on hover for daily summary.
+    * **View/Edit Logs:**
+        * List/table of all personal past log submissions.
+        * Filters: Date range, keyword search.
+        * Ability to view full details of any past log.
+        * Ability to edit any past log.
+        * **CRITICAL RULE:** If a log previously marked "Reviewed" by a Manager is edited by the Developer, its `review_status` on the backend *must revert to "Pending Review"* and trigger a notification to the manager.
+        * Pagination for logs.
+
+3.  **Manager View & Team Management:**
+    * **Team Logs Overview:**
+        * View logs of developers within their assigned team.
+        * Filters: Date, Developer, Task tags (if implemented), Blockers status, Review status.
+        * Table/list display of team logs.
+    * **Log Review:**
+        * View full details of any team member's log (read-only for tasks/time/mood/blockers).
+        * Input field for Manager Feedback.
+        * Checkbox to "Mark as Reviewed".
+        * Saving feedback/review status.
+    * **Team Management:**
+        * Display of Manager's unique "Team Code".
+        * List of developers in their team.
+        * Ability to remove developers from the team.
+        * Instructions for developers to join the team.
+
+4.  **Notification System:**
+    * **In-App Notifications (Frontend UI):**
+        * Bell icon with unread notification badge in navbar.
+        * Notification drawer displaying recent notifications.
+        * Notifications for:
+            * Developer: "Reminder: Please submit your daily log..."
+            * Manager: "New log submitted by [Developer Name]..."
+            * Developer: "Your log for [Date] has been reviewed..."
+            * **NEW (Manager):** "Log for [Developer Name] on [Date] has been re-edited and requires re-review."
+    * **Email Notifications (Backend):**
+        * **CRITICAL EMAIL REMINDER:** A daily backend cron job must run at **9:30 PM IST** (India Standard Time) to identify developers who have not submitted a log for the current day. For each such developer, an email reminder *must* be sent.
+            * **Email Subject:** "DevLog Reminder: Don't Forget Your Daily Log!"
+            * **Email Body:** Personalized message including a link to the Developer Dashboard.
+        * (Optional but Recommended): Email notification to Managers when a log is re-edited and reverts to "Pending Review."
+
+5.  **Export & Reports:**
+    * **Generate Reports:**
+        * Options for "Weekly Productivity Summary," "Monthly Productivity Summary," "Custom Date Range Report."
+        * Format selection: PDF, CSV.
+        * For Managers: Option to generate reports for "All Team" or specific team members.
+    * **Download:** Provide a download link for the generated report.
+
+Page-by-Page Breakdown (Detailed):
+
+I. Authentication Pages:
+
+* **Sign Up (`/signup`):**
+    * Inputs: Full Name, Email, Password, Confirm Password, User Role (Developer/Manager radio/dropdown), Team Code (text input, required for Managers, optional for Developers).
+    * Functionality: Client/server validation, user creation, team code generation for managers, redirection.
+* **Log In (`/login`):**
+    * Inputs: Email, Password.
+    * Functionality: Client/server validation, authentication, JWT/session handling, role-based redirection to dashboard.
+* **Forgot Password (`/forgot-password`):**
+    * Input: Email.
+    * Functionality: Initiates password reset email.
+* **Reset Password (`/reset-password?token=<token>`):**
+    * Inputs: New Password, Confirm New Password.
+    * Functionality: Validates token, updates password, redirects to login.
+
+II. Developer-Specific Pages:
+
+* **Developer Dashboard (`/dashboard`):**
+    * Components: Navigation bar, "Submit Daily Log" section (date picker, rich text/Markdown for tasks, time input, mood selector, blockers text area, submit button), "Productivity Heatmap" visualization, "Recent Logs" quick view (list of recent logs with summary, link to "My Logs").
+    * Functionality: Log submission, data fetching for heatmap/recent logs, client-side validation.
+* **My Logs (`/my-logs`):**
+    * Components: Navigation bar, Date Range filter, Search bar, Table/List of logs (Date, Time, Mood, Truncated Tasks/Blockers, Manager Feedback, Reviewed Status), "View/Edit" button per log, Pagination, "Export" button.
+    * Functionality: Filter/search logs, display, navigate to detail view.
+* **View/Edit Log Details (Modal or `/my-logs/:id`):**
+    * Components: Header, Read-only display of Date, Editable Rich Text/Markdown for Tasks, editable Time, Mood, Blockers. Read-only Manager Feedback and Reviewed Status. "Save Changes," "Cancel," "Delete Log" buttons.
+    * Functionality: Fetch specific log, populate fields, save changes (triggering re-review if status was "Reviewed"), delete log.
+
+III. Manager-Specific Pages:
+
+* **Manager Dashboard (`/manager/dashboard`):**
+    * Components: Navigation bar, "Team Summary" (metrics like # developers, # logs submitted today, # missing logs), "Missing Logs Today" list with "Send Reminder" button, "Recent Team Activity" feed, high-level "Productivity Trends" summary.
+    * Functionality: Fetch team summary data, trigger reminders.
+* **Team Logs (`/manager/team-logs`):**
+    * Components: Navigation bar, Filters (Developer, Date, Task Tags, Blockers Status, Review Status), Table/List of team logs (Developer Name, Date, Time, Mood, Truncated Tasks/Blockers, Manager Feedback, Reviewed Status), "View/Review" button per log, Pagination, "Export Team Report" button.
+    * Functionality: Filter/search team logs, display, navigate to detail view.
+* **View/Review Log Details (Modal or `/manager/team-logs/:id`):**
+    * Components: Header, Read-only display of all developer-submitted log details. Editable Manager Feedback text area. "Mark as Reviewed" checkbox. "Submit Feedback," "Cancel" buttons.
+    * Functionality: Fetch log details, submit feedback, update review status.
+* **Team Management (`/manager/team-management`):**
+    * Components: Navigation bar, "Your Team Code" display, List of Team Members (Name, Email, Last Logged), "Remove Developer" button, "Invite Developer" instructions.
+    * Functionality: Display team info, remove members.
+
+IV. General Pages / Functionality:
+
+* **Profile/Settings (`/profile`):**
+    * Components: Navigation bar, Editable Full Name, Read-only Email, Password Change link/modal, Read-only User Role. For Developers: Display current Team Code and "Change Team" option. "Save Changes," "Cancel" buttons.
+    * Functionality: Update profile, change password (via separate flow), for developers: change associated team.
+* **Export & Reports (Modal or `/reports`):**
+    * Components: Header, Report Type Selector (Weekly/Monthly/Custom), Date Range Selector, Format Selector (PDF/CSV), User Selector (for Managers), "Generate Report" button, Download Link.
+    * Functionality: Collect parameters, send request to backend, provide download.
+
+**Complexity Drivers:**
+
+* **Real-time Role-Based Permissions:** Implement robust middleware/guards on both frontend routes and backend API endpoints to enforce access control based on user role and team association.
+* **Markdown Rendering/Rich Text Handling:** Utilize a robust library for client-side editing and server-side rendering/sanitization of rich text content.
+* **Calendar/Heatmap Data Visualization:** Integrate a charting library to dynamically render complex data visualizations based on user log data.
+* **Scheduled Background Tasks:** Implement cron jobs (e.g., using `node-cron` or Replit's always-on features if applicable) for daily email reminders.
+* **Email Integration:** Configure and use an email service (e.g., SendGrid, Nodemailer with SMTP) for notifications.
+
+**Development Directives for AI Tool:**
+
+* Prioritize secure authentication and robust error handling.
+* Ensure a clear separation of concerns between frontend and backend.
+* Develop RESTful API endpoints for all data interactions.
+* Implement comprehensive database schema to support all features, including relationships between users, logs, teams, and feedback.
+* Focus on a clean and intuitive user interface for both Developers and Managers.
+* Provide placeholder content or mock data for initial UI rendering.
+* Include basic styling consistent with a professional productivity tool.
+* Add comments to complex logic for clarity.
+* Set up environment variables for sensitive data (e.g., database credentials, JWT secret, email service API keys).
+* Create a `README.md` file explaining the project setup, how to run it, and key features.
+* Ensure all necessary dependencies are listed in `package.json` (or equivalent).
+* For the 9:30 PM IST cron job, assume the server will be running in a timezone that can correctly compute IST. If Replit defaults to UTC, convert times appropriately.
