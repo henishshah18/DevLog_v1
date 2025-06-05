@@ -277,6 +277,38 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Team join endpoint
+  app.post("/api/team/join", requireAuth, async (req, res, next) => {
+    try {
+      const { code } = req.body;
+      if (!code) return res.status(400).json({ message: "Team code is required" });
+      
+      const team = await storage.getTeamByCode(code);
+      if (!team) return res.status(404).json({ message: "Invalid team code" });
+      
+      await storage.updateUserTeam(req.user!.id, team.id);
+      res.json({ message: "Successfully joined team", team });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Get user's team info
+  app.get("/api/user-team", requireAuth, async (req, res, next) => {
+    try {
+      if (!req.user!.teamId) {
+        return res.status(404).json({ message: "User not in any team" });
+      }
+      
+      const team = await storage.getTeamById(req.user!.teamId);
+      if (!team) return res.status(404).json({ message: "Team not found" });
+      
+      res.json(team);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Productivity data endpoint
   app.get("/api/productivity", requireAuth, async (req, res, next) => {
     try {
@@ -287,7 +319,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       const data = await storage.getProductivityData(
-        req.user.id,
+        req.user!.id,
         startDate as string,
         endDate as string
       );

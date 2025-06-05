@@ -41,11 +41,11 @@ export function ProductivityHeatmap({ userId }: ProductivityHeatmapProps) {
     );
   }
 
-  // Create a map of dates to productivity scores
+  // Create a map of dates to productivity scores (using mood as proxy for productivity)
   const logsByDate = new Map();
   logs.forEach(log => {
     const date = new Date(log.createdAt).toISOString().split('T')[0];
-    logsByDate.set(date, log.productivityScore || 0);
+    logsByDate.set(date, log.mood || 0);
   });
 
   // Generate grid for the last 3 months

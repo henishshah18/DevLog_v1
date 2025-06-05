@@ -12,7 +12,9 @@ export interface IStorage {
   // Team operations
   createTeam(team: InsertTeam): Promise<Team>;
   getTeamByCode(code: string): Promise<Team | undefined>;
+  getTeamById(id: number): Promise<Team | undefined>;
   updateTeamManager(teamId: number, managerId: number): Promise<void>;
+  updateUserTeam(userId: number, teamId: number): Promise<void>;
   generateTeamCode(): Promise<string>;
   getTeamMembers(teamId: number): Promise<User[]>;
 
@@ -80,6 +82,15 @@ export class DatabaseStorage implements IStorage {
   async getTeamByCode(code: string): Promise<Team | undefined> {
     const [team] = await db.select().from(teams).where(eq(teams.code, code));
     return team || undefined;
+  }
+
+  async getTeamById(id: number): Promise<Team | undefined> {
+    const [team] = await db.select().from(teams).where(eq(teams.id, id));
+    return team || undefined;
+  }
+
+  async updateUserTeam(userId: number, teamId: number): Promise<void> {
+    await db.update(users).set({ teamId }).where(eq(users.id, userId));
   }
 
   async updateTeamManager(teamId: number, managerId: number): Promise<void> {
