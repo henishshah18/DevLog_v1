@@ -44,6 +44,7 @@ export default defineConfig(async () => {
           main: path.resolve(rootDir, "index.html"),
           server: path.resolve(__dirname, "server/index.ts")
         },
+        external: ['fsevents'],
         output: {
           entryFileNames: (chunkInfo: { name?: string }) => {
             return chunkInfo.name === 'server' ? 'server/[name].js' : 'assets/[name]-[hash].js';
