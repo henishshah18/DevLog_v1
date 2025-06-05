@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin, type PluginOption } from "vite";
+import { defineConfig, type Plugin, type PluginOption, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
@@ -23,7 +23,7 @@ async function getPlugins(): Promise<PluginOption[]> {
 }
 
 // Export an async config
-export default defineConfig(async () => {
+export default defineConfig(async (): Promise<UserConfig> => {
   const rootDir = path.resolve(__dirname, "client");
   
   return {
@@ -34,24 +34,44 @@ export default defineConfig(async () => {
         "@shared": path.resolve(__dirname, "./shared"),
         "@assets": path.resolve(__dirname, "./attached_assets"),
       },
+      mainFields: ['module', 'jsnext:main', 'jsnext', 'main'],
+      preserveSymlinks: true
     },
     root: rootDir,
     build: {
       outDir: path.resolve(__dirname, "dist"),
       emptyOutDir: true,
+      target: 'esnext',
+      commonjsOptions: {
+        include: [/node_modules/],
+        extensions: ['.js', '.cjs', '.mjs'],
+        transformMixedEsModules: true
+      },
       rollupOptions: {
         input: {
           main: path.resolve(rootDir, "index.html"),
           server: path.resolve(__dirname, "server/index.ts")
         },
-        external: ['fsevents'],
+        external: [
+          'fsevents',
+          /^node:.*$/,
+        ],
         output: {
+          format: 'es',
           entryFileNames: (chunkInfo: { name?: string }) => {
             return chunkInfo.name === 'server' ? 'server/[name].js' : 'assets/[name]-[hash].js';
           }
         }
       },
       sourcemap: true,
+    },
+    optimizeDeps: {
+      esbuildOptions: {
+        target: 'esnext',
+        supported: { 
+          'top-level-await': true 
+        },
+      }
     },
     server: {
       fs: {
