@@ -6,14 +6,21 @@
   "installCommand": "npm install",
   "builds": [
     {
-      "src": "package.json",
+      "src": "server/**/*.ts",
       "use": "@vercel/node"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["dist/**"]
+      }
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/server/index.ts"
+      "dest": "server/index.ts"
     },
     {
       "handle": "filesystem"
@@ -25,7 +32,8 @@
   ],
   "env": {
     "NODE_ENV": "production",
-    "SKIP_PREFLIGHT_CHECK": "true"
+    "SKIP_PREFLIGHT_CHECK": "true",
+    "TS_NODE_PROJECT": "./tsconfig.json"
   },
   "crons": [
     {

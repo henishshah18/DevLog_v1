@@ -1,6 +1,6 @@
 import { users, teams, dailyLogs, notifications, type User, type InsertUser, type Team, type InsertTeam, type DailyLog, type InsertDailyLog, type Notification, type InsertNotification } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, isNull, sql, inArray } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import session from "express-session";
 
 export interface IStorage {

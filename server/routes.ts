@@ -11,6 +11,14 @@ declare module 'express-serve-static-core' {
   }
 }
 
+// Helper function to ensure user is defined
+function ensureUser(req: Request): User {
+  if (!req.user) {
+    throw new Error('User not authenticated');
+  }
+  return req.user;
+}
+
 export function registerRoutes(app: Express): Server {
   // Setup authentication routes
   setupAuth(app);
@@ -37,6 +45,7 @@ export function registerRoutes(app: Express): Server {
   // Daily logs endpoints
   app.post("/api/daily-logs", requireAuth, async (req, res, next) => {
     try {
+      const user = ensureUser(req);
       const validation = insertDailyLogSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ message: validation.error.errors[0].message });
@@ -44,14 +53,14 @@ export function registerRoutes(app: Express): Server {
 
       const logData = {
         ...validation.data,
-        userId: req.user.id,
+        userId: user.id,
       };
 
       const log = await storage.createDailyLog(logData);
 
       // Create notification for manager if user is in a team
-      if (req.user.teamId) {
-        const teamMembers = await storage.getTeamMembers(req.user.teamId);
+      if (user.teamId) {
+        const teamMembers = await storage.getTeamMembers(user.teamId);
         const manager = teamMembers.find(member => member.role === "manager");
         
         if (manager) {
@@ -59,7 +68,7 @@ export function registerRoutes(app: Express): Server {
             userId: manager.id,
             type: "log_submitted",
             title: "New Log Submitted",
-            message: `${req.user.fullName} has submitted a daily log for ${logData.date}`,
+            message: `${user.fullName} has submitted a daily log for ${logData.date}`,
           });
         }
       }
@@ -72,7 +81,8 @@ export function registerRoutes(app: Express): Server {
 
   app.get("/api/daily-logs", requireAuth, async (req, res, next) => {
     try {
-      const logs = await storage.getUserDailyLogs(req.user.id);
+      const user = ensureUser(req);
+      const logs = await storage.getUserDailyLogs(user.id);
       res.json(logs);
     } catch (error) {
       next(error);
@@ -252,12 +262,12 @@ export function registerRoutes(app: Express): Server {
 
   app.get("/api/team/code", requireManager, async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.user?.teamId) {
+      const user = ensureUser(req);
+      if (!user.teamId) {
         return res.status(400).json({ message: "Manager not assigned to a team" });
       }
 
-      // Remove unused variables
-      const mockTeamCode = `TEAM-${req.user.teamId.toString().padStart(6, '0')}`;
+      const mockTeamCode = `TEAM-${user.teamId.toString().padStart(6, '0')}`;
       res.json({ code: mockTeamCode });
     } catch (error) {
       next(error);
