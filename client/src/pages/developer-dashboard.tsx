@@ -55,12 +55,21 @@ export default function DeveloperDashboard() {
 
   const submitLogMutation = useMutation({
     mutationFn: async (data: InsertDailyLog) => {
+      console.log('Submitting log data:', data);
       const logData = {
         ...data,
         blockers: [...selectedBlockers, ...(customBlocker ? [customBlocker] : [])].join(", ")
       };
-      const res = await apiRequest("POST", "/api/daily-logs", logData);
-      return await res.json();
+      console.log('Processed log data:', logData);
+      try {
+        const res = await apiRequest("POST", "/api/daily-logs", logData);
+        const result = await res.json();
+        console.log('Submission response:', result);
+        return result;
+      } catch (error) {
+        console.error('Error submitting log:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
@@ -73,6 +82,7 @@ export default function DeveloperDashboard() {
       setCustomBlocker("");
     },
     onError: (error: Error) => {
+      console.error('Mutation error:', error);
       toast({
         title: "Failed to submit log",
         description: error.message,
@@ -105,6 +115,7 @@ export default function DeveloperDashboard() {
   });
 
   const onSubmit = (data: InsertDailyLog) => {
+    console.log('Form submitted with data:', data);
     submitLogMutation.mutate(data);
   };
 

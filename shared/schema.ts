@@ -1,4 +1,5 @@
-import { sqliteTable, text, integer, blob, sql } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -119,6 +120,19 @@ export const insertDailyLogSchema = createInsertSchema(dailyLogs).omit({
   managerFeedback: true,
   reviewedAt: true,
   reviewedBy: true,
+  userId: true,
+  challenges: true,
+  learnings: true,
+  tasksCompleted: true,
+  productivityScore: true,
+  hoursWorked: true,
+}).extend({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
+  tasks: z.string().min(1, "Tasks cannot be empty"),
+  hours: z.number().min(0).max(24),
+  minutes: z.number().min(0).max(59),
+  mood: z.number().min(1).max(5),
+  blockers: z.string().optional(),
 });
 
 export const insertNotificationSchema = createInsertSchema(notifications).omit({
