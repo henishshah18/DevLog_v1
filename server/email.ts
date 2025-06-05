@@ -1,5 +1,4 @@
 import nodemailer from 'nodemailer';
-import { storage } from './storage';
 
 interface EmailConfig {
   host: string;

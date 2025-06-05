@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useState } from "react";
 import { User } from "@shared/schema";
 import { format } from "date-fns";
-import { Users, Copy, UserMinus, Mail, Calendar, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { Users, Copy, UserMinus, Mail, Calendar, CheckCircle, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 

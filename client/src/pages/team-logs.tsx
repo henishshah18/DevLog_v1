@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DailyLog, User } from "@shared/schema";
 import { format } from "date-fns";
-import { Search, Filter, Download, Clock, Calendar } from "lucide-react";
+import { Search, Download, Clock, Calendar } from "lucide-react";
 
 export default function TeamLogs() {
   const { user } = useAuth();

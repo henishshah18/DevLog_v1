@@ -8,16 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { insertDailyLogSchema, type InsertDailyLog, type DailyLog, type User, type Team } from "@shared/schema";
+import { insertDailyLogSchema, type InsertDailyLog, type DailyLog, type Team } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Clock, TrendingUp, Calendar, Bell, Copy, Check, Users, FileText } from "lucide-react";
+import { TrendingUp, Calendar, Bell, Copy, Check, Users, FileText } from "lucide-react";
 
 export default function DeveloperDashboard() {
   const { user } = useAuth();

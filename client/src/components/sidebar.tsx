@@ -1,14 +1,23 @@
-import { useAuth } from "@/hooks/use-auth";
+import { Link, useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  BarChart,
+  Users,
+  FileText,
+  LogOut,
+  Home
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Link, useLocation } from "wouter";
 import { 
-  Home, 
-  FileText, 
-  Users, 
+  Home as HomeIcon, 
+  FileText as FileTextIcon, 
+  Users as UsersIcon, 
   Settings, 
-  LogOut, 
+  LogOut as LogOutIcon, 
   BarChart3,
   UserCheck
 } from "lucide-react";
@@ -29,13 +38,13 @@ export function Sidebar() {
     {
       label: "Dashboard",
       path: "/",
-      icon: Home,
+      icon: HomeIcon,
       roles: ["developer", "manager"]
     },
     {
       label: "My Logs",
       path: "/my-logs",
-      icon: FileText,
+      icon: FileTextIcon,
       roles: ["developer"]
     },
     {
@@ -53,7 +62,7 @@ export function Sidebar() {
     {
       label: "Team Management",
       path: "/team-management",
-      icon: Users,
+      icon: UsersIcon,
       roles: ["manager"]
     }
   ];
@@ -98,7 +107,7 @@ export function Sidebar() {
           const active = isActive(item.path);
           
           return (
-            <Link key={item.path} href={item.path}>
+            <Link key={item.path} to={item.path}>
               <Button
                 variant={active ? "default" : "ghost"}
                 className={`w-full justify-start gap-3 ${
@@ -123,7 +132,7 @@ export function Sidebar() {
           disabled={logoutMutation.isPending}
           className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOutIcon className="h-4 w-4" />
           {logoutMutation.isPending ? "Signing out..." : "Sign Out"}
         </Button>
         
