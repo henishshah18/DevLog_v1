@@ -58,6 +58,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    let teamId: number | null = null;
+
+    // If user is a manager, create a new team
+    if (insertUser.role === "manager") {
+      const teamCode = await this.generateTeamCode();
+      const now = new Date();
+      const [team] = await db
+        .insert(teams)
+        .values({
+          name: `${insertUser.fullName}'s Team`,
+          code: teamCode,
+          managerId: 0, // Will be updated after user creation
+          createdAt: now,
+        })
+        .returning();
+      teamId = team.id;
+    }
+    // If user is a developer and has team code, validate and get team
+    else if (insertUser.teamCode) {
+      const team = await this.getTeamByCode(insertUser.teamCode);
+      if (!team) {
+        throw new Error("Invalid team code");
+      }
+      teamId = team.id;
+    }
+
+    // Create the user
     const [user] = await db
       .insert(users)
       .values({
@@ -65,9 +92,16 @@ export class DatabaseStorage implements IStorage {
         password: insertUser.password,
         fullName: insertUser.fullName,
         role: insertUser.role,
-        // teamId will be set later when joining a team
+        teamId: teamId,
+        createdAt: new Date(),
       })
       .returning();
+
+    // If user is a manager, update the team's managerId
+    if (insertUser.role === "manager" && teamId) {
+      await this.updateTeamManager(teamId, user.id);
+    }
+
     return user;
   }
 
@@ -122,11 +156,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createDailyLog(log: InsertDailyLog): Promise<DailyLog> {
+    const now = new Date();
     const [newLog] = await db
       .insert(dailyLogs)
       .values({
         ...log,
-        updatedAt: new Date(),
+        createdAt: now,
+        updatedAt: now,
       })
       .returning();
     return newLog;
@@ -214,7 +250,10 @@ export class DatabaseStorage implements IStorage {
   async createNotification(notification: InsertNotification): Promise<Notification> {
     const [newNotification] = await db
       .insert(notifications)
-      .values(notification)
+      .values({
+        ...notification,
+        createdAt: new Date(),
+      })
       .returning();
     return newNotification;
   }

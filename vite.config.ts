@@ -18,6 +18,8 @@ export default defineConfig({
     sourcemap: true
   },
   server: {
+    port: 5000,
+    host: true,
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
