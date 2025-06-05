@@ -1,28 +1,28 @@
-import { pgTable, text, serial, integer, boolean, timestamp, varchar } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer, blob, sql } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
   role: text("role").notNull(), // 'developer' | 'manager'
   teamId: integer("team_id"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-export const teams = pgTable("teams", {
-  id: serial("id").primaryKey(),
+export const teams = sqliteTable("teams", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
-  code: varchar("code", { length: 20 }).notNull().unique(),
+  code: text("code").notNull().unique(),
   managerId: integer("manager_id").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
-export const dailyLogs = pgTable("daily_logs", {
-  id: serial("id").primaryKey(),
+export const dailyLogs = sqliteTable("daily_logs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   userId: integer("user_id").notNull(),
   date: text("date").notNull(), // YYYY-MM-DD format
   tasks: text("tasks").notNull(),
@@ -35,22 +35,22 @@ export const dailyLogs = pgTable("daily_logs", {
   tasksCompleted: text("tasks_completed"),
   productivityScore: integer("productivity_score"),
   hoursWorked: integer("hours_worked"),
-  reviewStatus: text("review_status").default("pending").notNull(), // 'pending' | 'reviewed'
+  reviewStatus: text("review_status").notNull().default('pending'), // 'pending' | 'reviewed'
   managerFeedback: text("manager_feedback"),
-  reviewedAt: timestamp("reviewed_at"),
+  reviewedAt: integer("reviewed_at", { mode: "timestamp" }),
   reviewedBy: integer("reviewed_by"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
 
-export const notifications = pgTable("notifications", {
-  id: serial("id").primaryKey(),
+export const notifications = sqliteTable("notifications", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   userId: integer("user_id").notNull(),
   type: text("type").notNull(), // 'log_reminder' | 'log_reviewed' | 'log_re_edited'
   title: text("title").notNull(),
   message: text("message").notNull(),
-  read: boolean("read").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  read: integer("read", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
 // Relations

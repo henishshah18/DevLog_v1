@@ -86,7 +86,6 @@
     "ws": "^8.18.0",
     "zod": "^3.24.2",
     "zod-validation-error": "^3.4.0",
-    "sqlite3": "^5.1.7",
     "dotenv": "^16.4.5",
     "drizzle-kit": "^0.20.14"
   },
