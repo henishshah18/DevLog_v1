@@ -1,14 +1,14 @@
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { DailyLog, User } from "@shared/schema";
-import { Clock, Calendar, Smile } from "lucide-react";
+import { Calendar, Clock, User as UserIcon, Star } from "lucide-react";
 
 interface LogReviewModalProps {
   isOpen: boolean;
@@ -18,24 +18,23 @@ interface LogReviewModalProps {
 
 export function LogReviewModal({ isOpen, onClose, log }: LogReviewModalProps) {
   const [feedback, setFeedback] = useState("");
-  const [isReviewed, setIsReviewed] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const reviewMutation = useMutation({
     mutationFn: async (data: { feedback: string; isReviewed: boolean }) => {
       if (!log) throw new Error("No log selected");
-      await apiRequest("POST", `/api/daily-logs/${log.id}/review`, data);
+      const response = await apiRequest("POST", `/api/daily-logs/${log.id}/review`, data);
+      return response.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/team-logs"] });
       toast({
         title: "Review submitted",
-        description: "The log review has been saved successfully.",
+        description: "Your feedback has been saved successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/team-logs"] });
-      onClose();
       setFeedback("");
-      setIsReviewed(false);
+      onClose();
     },
     onError: (error: Error) => {
       toast({
@@ -46,138 +45,190 @@ export function LogReviewModal({ isOpen, onClose, log }: LogReviewModalProps) {
     },
   });
 
-  const handleSubmit = () => {
-    reviewMutation.mutate({ feedback, isReviewed });
-  };
-
-  const getMoodEmoji = (mood: number) => {
-    switch (mood) {
-      case 1: return "😞";
-      case 2: return "😔";
-      case 3: return "😐";
-      case 4: return "😊";
-      case 5: return "😄";
-      default: return "😐";
+  const handleSubmitReview = () => {
+    if (!feedback.trim()) {
+      toast({
+        title: "Feedback required",
+        description: "Please provide feedback before submitting.",
+        variant: "destructive",
+      });
+      return;
     }
-  };
-
-  const getMoodText = (mood: number) => {
-    switch (mood) {
-      case 1: return "Terrible";
-      case 2: return "Poor";
-      case 3: return "Neutral";
-      case 4: return "Good";
-      case 5: return "Excellent";
-      default: return "Neutral";
-    }
+    
+    reviewMutation.mutate({
+      feedback: feedback.trim(),
+      isReviewed: true,
+    });
   };
 
   if (!log) return null;
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const getMoodEmoji = (mood: string) => {
+    const moodMap: Record<string, string> = {
+      'very_happy': '😄',
+      'happy': '😊',
+      'neutral': '😐',
+      'sad': '😔',
+      'very_sad': '😞'
+    };
+    return moodMap[mood] || '😐';
+  };
+
+  const getProductivityColor = (score: number) => {
+    if (score >= 8) return 'bg-green-500';
+    if (score >= 6) return 'bg-blue-500';
+    if (score >= 4) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Review Daily Log - {log.user.fullName}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <UserIcon className="h-5 w-5" />
+            Review Daily Log - {log.user.fullName}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Developer Info */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center space-x-4">
-              <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-medium">
-                  {log.user.fullName.split(" ").map(n => n[0]).join("").toUpperCase()}
-                </span>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">{log.user.fullName}</h3>
-                <p className="text-gray-600">{log.date}</p>
-              </div>
-              <div className="ml-auto flex space-x-6">
-                <div className="text-center">
-                  <div className="flex items-center text-gray-600 mb-1">
-                    <Clock className="h-4 w-4 mr-1" />
-                    <span className="text-sm">Time Logged</span>
-                  </div>
-                  <div className="font-semibold text-gray-900">
-                    {log.hours}h {log.minutes}m
+          {/* Log Header */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Date</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDate(log.createdAt)}
+                    </p>
                   </div>
                 </div>
-                <div className="text-center">
-                  <div className="flex items-center text-gray-600 mb-1">
-                    <Smile className="h-4 w-4 mr-1" />
-                    <span className="text-sm">Mood</span>
+                
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Hours Worked</p>
+                    <p className="text-xs text-muted-foreground">
+                      {log.hoursWorked || 0}h
+                    </p>
                   </div>
-                  <div className="text-2xl">
-                    {getMoodEmoji(log.mood)} <span className="text-sm font-medium text-gray-700">{getMoodText(log.mood)}</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Productivity</p>
+                    <div className="flex items-center gap-1">
+                      <div className={`w-2 h-2 rounded-full ${getProductivityColor(log.productivityScore || 0)}`}></div>
+                      <span className="text-xs text-muted-foreground">
+                        {log.productivityScore || 0}/10
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{getMoodEmoji(log.mood || 'neutral')}</span>
+                  <div>
+                    <p className="text-sm font-medium">Mood</p>
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {(log.mood || 'neutral').replace('_', ' ')}
+                    </p>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Tasks Completed */}
           <div>
-            <h4 className="font-semibold text-gray-900 mb-3">Tasks Completed</h4>
-            <div className="bg-gray-50 rounded-lg p-4 border">
-              <div className="whitespace-pre-wrap font-mono text-sm text-gray-900">
-                {log.tasks}
-              </div>
-            </div>
+            <h3 className="font-semibold mb-3">Tasks Completed</h3>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="whitespace-pre-wrap text-sm">
+                  {log.tasksCompleted || "No tasks specified"}
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Blockers */}
-          {log.blockers && (
+          {/* Challenges */}
+          {log.challenges && (
             <div>
-              <h4 className="font-semibold text-gray-900 mb-3">Blockers</h4>
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <p className="text-gray-700">{log.blockers}</p>
-              </div>
+              <h3 className="font-semibold mb-3">Challenges & Blockers</h3>
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="whitespace-pre-wrap text-sm">
+                    {log.challenges}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 
-          {/* Existing Manager Feedback */}
-          {log.managerFeedback && (
+          {/* Learning & Notes */}
+          {log.learnings && (
             <div>
-              <h4 className="font-semibold text-gray-900 mb-3">Previous Feedback</h4>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-gray-700">{log.managerFeedback}</p>
-              </div>
+              <h3 className="font-semibold mb-3">Learning & Notes</h3>
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="whitespace-pre-wrap text-sm">
+                    {log.learnings}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 
-          {/* Manager Feedback Section */}
-          <div className="border-t pt-6">
-            <Label htmlFor="manager-feedback" className="text-base font-semibold text-gray-900 mb-3 block">
-              Manager Feedback
-            </Label>
+          {/* Previous Feedback */}
+          {log.isReviewed && log.managerFeedback && (
+            <div>
+              <h3 className="font-semibold mb-3">Previous Feedback</h3>
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="whitespace-pre-wrap text-sm bg-muted p-3 rounded">
+                    {log.managerFeedback}
+                  </div>
+                  <Badge variant="secondary" className="mt-2">
+                    Already Reviewed
+                  </Badge>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Feedback Section */}
+          <div>
+            <h3 className="font-semibold mb-3">
+              {log.isReviewed ? "Update Feedback" : "Provide Feedback"}
+            </h3>
             <Textarea
-              id="manager-feedback"
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
-              rows={4}
-              placeholder="Add your feedback for this log..."
-              className="mb-4"
+              placeholder="Provide constructive feedback, suggestions, or acknowledgment of good work..."
+              className="min-h-[120px]"
             />
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="mark-reviewed"
-                checked={isReviewed}
-                onCheckedChange={(checked) => setIsReviewed(checked as boolean)}
-              />
-              <Label htmlFor="mark-reviewed">Mark as reviewed</Label>
-            </div>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-6 border-t">
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3 pt-4 border-t">
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
             <Button 
-              onClick={handleSubmit}
-              disabled={reviewMutation.isPending || !feedback.trim()}
+              onClick={handleSubmitReview}
+              disabled={reviewMutation.isPending}
             >
               {reviewMutation.isPending ? "Submitting..." : "Submit Review"}
             </Button>

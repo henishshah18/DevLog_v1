@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, startOfWeek, endOfWeek } from "date-fns";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { DailyLog } from "@shared/schema";
 
 interface ProductivityHeatmapProps {
@@ -7,110 +8,140 @@ interface ProductivityHeatmapProps {
 }
 
 export function ProductivityHeatmap({ userId }: ProductivityHeatmapProps) {
-  const currentDate = new Date();
-  const monthStart = startOfMonth(currentDate);
-  const monthEnd = endOfMonth(currentDate);
+  const today = new Date();
+  const startDate = new Date(today.getFullYear(), today.getMonth() - 2, 1).toISOString().split('T')[0];
+  const endDate = today.toISOString().split('T')[0];
 
-  const { data: logs = [] } = useQuery<DailyLog[]>({
-    queryKey: ["/api/productivity", {
-      startDate: format(monthStart, "yyyy-MM-dd"),
-      endDate: format(monthEnd, "yyyy-MM-dd"),
-    }],
-    enabled: !!userId,
+  const { data: logs = [], isLoading } = useQuery<DailyLog[]>({
+    queryKey: ['/api/productivity', userId, startDate, endDate],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        startDate,
+        endDate,
+        ...(userId && { userId: userId.toString() })
+      });
+      const response = await fetch(`/api/productivity?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch productivity data');
+      return response.json();
+    },
   });
 
-  // Create a map of date to total hours
-  const productivityMap = logs.reduce((acc, log) => {
-    const totalHours = log.hours + (log.minutes / 60);
-    acc[log.date] = totalHours;
-    return acc;
-  }, {} as Record<string, number>);
-
-  // Get intensity level based on hours logged
-  const getIntensity = (hours: number) => {
-    if (hours === 0) return 0;
-    if (hours <= 2) return 1;
-    if (hours <= 4) return 2;
-    if (hours <= 6) return 3;
-    if (hours <= 8) return 4;
-    return 5;
-  };
-
-  const getColorClass = (intensity: number) => {
-    switch (intensity) {
-      case 0: return "bg-gray-200";
-      case 1: return "bg-blue-200";
-      case 2: return "bg-blue-300";
-      case 3: return "bg-blue-400";
-      case 4: return "bg-blue-600";
-      case 5: return "bg-blue-800";
-      default: return "bg-gray-200";
-    }
-  };
-
-  // Generate calendar days for the month
-  const firstWeekStart = startOfWeek(monthStart);
-  const lastWeekEnd = endOfWeek(monthEnd);
-  const calendarDays = eachDayOfInterval({ start: firstWeekStart, end: lastWeekEnd });
-
-  const weeks = [];
-  for (let i = 0; i < calendarDays.length; i += 7) {
-    weeks.push(calendarDays.slice(i, i + 7));
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Productivity Heatmap</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
+  // Create a map of dates to productivity scores
+  const logsByDate = new Map();
+  logs.forEach(log => {
+    const date = new Date(log.createdAt).toISOString().split('T')[0];
+    logsByDate.set(date, log.productivityScore || 0);
+  });
+
+  // Generate grid for the last 3 months
+  const generateCalendarGrid = () => {
+    const grid = [];
+    const startCalendar = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+    const endCalendar = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+    for (let d = new Date(startCalendar); d <= endCalendar; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split('T')[0];
+      const score = logsByDate.get(dateStr) || 0;
+      grid.push({
+        date: dateStr,
+        score,
+        day: d.getDate(),
+        month: d.getMonth(),
+      });
+    }
+    return grid;
+  };
+
+  const getIntensityClass = (score: number) => {
+    if (score === 0) return 'bg-gray-100 dark:bg-gray-800';
+    if (score <= 2) return 'bg-red-200 dark:bg-red-900';
+    if (score <= 4) return 'bg-yellow-200 dark:bg-yellow-900';
+    if (score <= 6) return 'bg-blue-200 dark:bg-blue-900';
+    if (score <= 8) return 'bg-green-200 dark:bg-green-900';
+    return 'bg-green-400 dark:bg-green-600';
+  };
+
+  const calendarGrid = generateCalendarGrid();
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between text-xs text-gray-500">
-        <span>Less</span>
-        <div className="flex space-x-1">
-          <div className="w-3 h-3 bg-gray-200 rounded-sm"></div>
-          <div className="w-3 h-3 bg-blue-200 rounded-sm"></div>
-          <div className="w-3 h-3 bg-blue-300 rounded-sm"></div>
-          <div className="w-3 h-3 bg-blue-400 rounded-sm"></div>
-          <div className="w-3 h-3 bg-blue-600 rounded-sm"></div>
-          <div className="w-3 h-3 bg-blue-800 rounded-sm"></div>
-        </div>
-        <span>More</span>
-      </div>
-
-      <div className="space-y-1">
-        {/* Week day headers */}
-        <div className="grid grid-cols-7 gap-1 text-xs text-gray-500 text-center">
-          <div>Sun</div>
-          <div>Mon</div>
-          <div>Tue</div>
-          <div>Wed</div>
-          <div>Thu</div>
-          <div>Fri</div>
-          <div>Sat</div>
-        </div>
-
-        {/* Calendar grid */}
-        {weeks.map((week, weekIndex) => (
-          <div key={weekIndex} className="grid grid-cols-7 gap-1">
-            {week.map((day) => {
-              const dateStr = format(day, "yyyy-MM-dd");
-              const hours = productivityMap[dateStr] || 0;
-              const intensity = getIntensity(hours);
-              const isCurrentMonth = day >= monthStart && day <= monthEnd;
-
-              return (
-                <div
-                  key={dateStr}
-                  className={`w-4 h-4 rounded-sm transition-colors cursor-pointer ${
-                    isCurrentMonth ? getColorClass(intensity) : "bg-gray-100"
-                  }`}
-                  title={
-                    isCurrentMonth
-                      ? `${format(day, "MMM dd, yyyy")}: ${hours.toFixed(1)} hours logged`
-                      : format(day, "MMM dd, yyyy")
-                  }
-                />
-              );
-            })}
+    <Card>
+      <CardHeader>
+        <CardTitle>Productivity Heatmap</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Track your daily productivity over the last 3 months
+        </p>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {/* Legend */}
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Less productive</span>
+            <div className="flex gap-1">
+              <div className="w-3 h-3 bg-gray-100 dark:bg-gray-800 rounded-sm"></div>
+              <div className="w-3 h-3 bg-red-200 dark:bg-red-900 rounded-sm"></div>
+              <div className="w-3 h-3 bg-yellow-200 dark:bg-yellow-900 rounded-sm"></div>
+              <div className="w-3 h-3 bg-blue-200 dark:bg-blue-900 rounded-sm"></div>
+              <div className="w-3 h-3 bg-green-200 dark:bg-green-900 rounded-sm"></div>
+              <div className="w-3 h-3 bg-green-400 dark:bg-green-600 rounded-sm"></div>
+            </div>
+            <span>More productive</span>
           </div>
-        ))}
-      </div>
-    </div>
+
+          {/* Calendar Grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+              <div key={day} className="text-xs font-medium text-center p-1 text-muted-foreground">
+                {day}
+              </div>
+            ))}
+            
+            {calendarGrid.map((cell, index) => (
+              <div
+                key={index}
+                className={`w-4 h-4 rounded-sm ${getIntensityClass(cell.score)} border border-border`}
+                title={`${cell.date}: ${cell.score}/10 productivity`}
+              />
+            ))}
+          </div>
+
+          {/* Stats */}
+          <div className="flex gap-4 pt-4 border-t">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary">
+                {logs.length}
+              </div>
+              <div className="text-xs text-muted-foreground">Days logged</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary">
+                {logs.length > 0 ? Math.round(logs.reduce((sum, log) => sum + (log.productivityScore || 0), 0) / logs.length) : 0}
+              </div>
+              <div className="text-xs text-muted-foreground">Avg productivity</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary">
+                {logs.filter(log => (log.productivityScore || 0) >= 7).length}
+              </div>
+              <div className="text-xs text-muted-foreground">High days</div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
