@@ -1,6 +1,6 @@
 import { users, teams, dailyLogs, notifications, type User, type InsertUser, type Team, type InsertTeam, type DailyLog, type InsertDailyLog, type Notification, type InsertNotification } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, isNull, sql } from "drizzle-orm";
+import { eq, desc, and, isNull, sql, inArray } from "drizzle-orm";
 import session from "express-session";
 
 export interface IStorage {
@@ -160,8 +160,8 @@ export class DatabaseStorage implements IStorage {
       })
       .from(dailyLogs)
       .innerJoin(users, eq(dailyLogs.userId, users.id))
-      .where(sql`${dailyLogs.userId} = ANY(${memberIds})`)
-      .orderBy(desc(dailyLogs.date));
+      .where(sql`${dailyLogs.userId} IN (${sql.join(memberIds, sql`,`)})`)
+      .orderBy(desc(dailyLogs.createdAt));
 
     return logs;
   }

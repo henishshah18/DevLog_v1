@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { insertDailyLogSchema, type InsertDailyLog, type DailyLog } from "@shared/schema";
+import { insertDailyLogSchema, type InsertDailyLog, type DailyLog, type User } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -28,6 +28,13 @@ export default function DeveloperDashboard() {
   const { data: logs = [] } = useQuery<DailyLog[]>({
     queryKey: ["/api/daily-logs"],
   });
+
+  const [selectedBlockers, setSelectedBlockers] = useState<string[]>([]);
+  const [customBlocker, setCustomBlocker] = useState("");
+
+  const predefinedBlockers = [
+    "Dependencies", "Testing", "Code Review", "Deployment", "Environment", "Design"
+  ];
 
   const form = useForm<InsertDailyLog>({
     resolver: zodResolver(insertDailyLogSchema),
