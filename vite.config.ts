@@ -23,42 +23,46 @@ async function getPlugins(): Promise<PluginOption[]> {
 }
 
 // Export an async config
-export default defineConfig(async () => ({
-  plugins: await getPlugins(),
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./client/src"),
-      "@shared": path.resolve(__dirname, "./shared"),
-      "@assets": path.resolve(__dirname, "./attached_assets"),
-    },
-  },
-  root: path.resolve(__dirname, "client"),
-  build: {
-    outDir: "dist",
-    emptyOutDir: true,
-    rollupOptions: {
-      input: {
-        main: path.resolve(__dirname, "index.html"),
-        server: path.resolve(__dirname, "server/index.ts")
+export default defineConfig(async () => {
+  const rootDir = path.resolve(__dirname, "client");
+  
+  return {
+    plugins: await getPlugins(),
+    resolve: {
+      alias: {
+        "@": path.resolve(rootDir, "src"),
+        "@shared": path.resolve(__dirname, "./shared"),
+        "@assets": path.resolve(__dirname, "./attached_assets"),
       },
-      output: {
-        entryFileNames: (chunkInfo: { name?: string }) => {
-          return chunkInfo.name === 'server' ? 'server/[name].js' : 'assets/[name]-[hash].js';
+    },
+    root: rootDir,
+    build: {
+      outDir: path.resolve(__dirname, "dist"),
+      emptyOutDir: true,
+      rollupOptions: {
+        input: {
+          main: path.resolve(rootDir, "index.html"),
+          server: path.resolve(__dirname, "server/index.ts")
+        },
+        output: {
+          entryFileNames: (chunkInfo: { name?: string }) => {
+            return chunkInfo.name === 'server' ? 'server/[name].js' : 'assets/[name]-[hash].js';
+          }
         }
-      }
+      },
+      sourcemap: true,
     },
-    sourcemap: true,
-  },
-  server: {
-    fs: {
-      strict: true,
-      deny: ["**/.*"],
-    },
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
+    server: {
+      fs: {
+        strict: true,
+        deny: ["**/.*"],
+      },
+      proxy: {
+        '/api': {
+          target: 'http://localhost:3000',
+          changeOrigin: true,
+        },
       },
     },
-  },
-}));
+  };
+});
