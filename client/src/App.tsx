@@ -12,6 +12,7 @@ import ManagerDashboard from "@/pages/manager-dashboard";
 import MyLogs from "@/pages/my-logs";
 import TeamLogs from "@/pages/team-logs";
 import TeamManagement from "@/pages/team-management";
+import ProductivityReport from "@/pages/productivity-report";
 
 function Router() {
   return (
@@ -21,6 +22,7 @@ function Router() {
       <ProtectedRoute path="/my-logs" component={MyLogs} />
       <ProtectedRoute path="/team-logs" component={TeamLogs} />
       <ProtectedRoute path="/team-management" component={TeamManagement} />
+      <ProtectedRoute path="/productivity" component={ProductivityReport} />
       <Route path="/auth"><AuthPage /></Route>
       <Route><NotFound /></Route>
     </Switch>

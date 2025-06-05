@@ -495,9 +495,11 @@ export default function DeveloperDashboard() {
                 </a>
               </Button>
               
-              <Button variant="outline" className="w-full justify-start">
-                <TrendingUp className="h-4 w-4 mr-2" />
-                Productivity Report
+              <Button variant="outline" className="w-full justify-start" asChild>
+                <a href="/productivity">
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Productivity Report
+                </a>
               </Button>
               
               {user?.role === "manager" && (
