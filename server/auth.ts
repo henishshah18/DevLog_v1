@@ -8,6 +8,7 @@ import { storage } from "./storage";
 import { User as SelectUser, insertUserSchema, loginSchema } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
+import bcrypt from "bcrypt";
 
 declare global {
   namespace Express {
@@ -80,56 +81,42 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/register", async (req, res, next) => {
+  app.post("/api/auth/register", async (req, res) => {
     try {
       const validation = insertUserSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ message: validation.error.errors[0].message });
       }
 
-      const { email, password, fullName, role, teamCode } = validation.data;
+      const { email, password, fullName, role, teamCode, confirmPassword } = validation.data;
 
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
-        return res.status(400).json({ message: "Email already exists" });
+        return res.status(400).json({ message: "Email already registered" });
       }
 
-      let teamId = null;
-      if (role === "manager") {
-        // Create a new team for managers
-        const team = await storage.createTeam({
-          name: `${fullName}'s Team`,
-          code: await storage.generateTeamCode(),
-          managerId: 0, // Will be updated after user creation
-        });
-        teamId = team.id;
-      } else if (teamCode) {
-        // Join existing team for developers
-        const team = await storage.getTeamByCode(teamCode);
-        if (team) {
-          teamId = team.id;
-        }
-      }
+      const hashedPassword = await bcrypt.hash(password, 10);
 
       const user = await storage.createUser({
         email,
-        password: await hashPassword(password),
+        password: hashedPassword,
         fullName,
         role,
-        teamId,
+        teamCode,
+        confirmPassword,
       });
 
       // Update team's managerId if this is a manager
-      if (role === "manager" && teamId) {
-        await storage.updateTeamManager(teamId, user.id);
+      if (role === "manager" && user.teamId) {
+        await storage.updateTeamManager(user.teamId, user.id);
       }
 
       req.login(user, (err) => {
-        if (err) return next(err);
+        if (err) return res.status(500).json({ message: "Error logging in" });
         res.status(201).json(user);
       });
     } catch (error) {
-      next(error);
+      res.status(500).json({ message: "Error registering user" });
     }
   });
 

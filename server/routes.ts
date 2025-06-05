@@ -91,6 +91,7 @@ export function registerRoutes(app: Express): Server {
 
   app.get("/api/daily-logs/:id", requireAuth, async (req, res, next) => {
     try {
+      const user = ensureUser(req);
       const logId = parseInt(req.params.id);
       const log = await storage.getDailyLog(logId);
       
@@ -99,13 +100,13 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Check if user owns the log or is a manager in the same team
-      if (log.userId !== req.user.id) {
-        if (req.user.role !== "manager" || !req.user.teamId) {
+      if (log.userId !== user.id) {
+        if (user.role !== "manager" || !user.teamId) {
           return res.sendStatus(403);
         }
         
         const logUser = await storage.getUser(log.userId);
-        if (!logUser || logUser.teamId !== req.user.teamId) {
+        if (!logUser || logUser.teamId !== user.teamId) {
           return res.sendStatus(403);
         }
       }
@@ -118,6 +119,7 @@ export function registerRoutes(app: Express): Server {
 
   app.put("/api/daily-logs/:id", requireAuth, async (req, res, next) => {
     try {
+      const user = ensureUser(req);
       const logId = parseInt(req.params.id);
       const log = await storage.getDailyLog(logId);
       
@@ -125,7 +127,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Log not found" });
       }
 
-      if (log.userId !== req.user.id) {
+      if (log.userId !== user.id) {
         return res.sendStatus(403);
       }
 
@@ -134,10 +136,9 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: validation.error.errors[0].message });
       }
 
-      // If log was previously reviewed, reset review status
       const updates: any = {
         ...validation.data,
-        userId: req.user.id,
+        userId: user.id,
       };
 
       if (log.reviewStatus === "reviewed") {
@@ -146,8 +147,8 @@ export function registerRoutes(app: Express): Server {
         updates.reviewedBy = null;
 
         // Notify manager of re-edit
-        if (req.user.teamId) {
-          const teamMembers = await storage.getTeamMembers(req.user.teamId);
+        if (user.teamId) {
+          const teamMembers = await storage.getTeamMembers(user.teamId);
           const manager = teamMembers.find(member => member.role === "manager");
           
           if (manager) {
@@ -155,7 +156,7 @@ export function registerRoutes(app: Express): Server {
               userId: manager.id,
               type: "log_re_edited",
               title: "Log Re-edited",
-              message: `${req.user.fullName} has re-edited their log for ${log.date} and requires re-review`,
+              message: `${user.fullName} has re-edited their log for ${log.date} and requires re-review`,
             });
           }
         }
@@ -170,6 +171,7 @@ export function registerRoutes(app: Express): Server {
 
   app.delete("/api/daily-logs/:id", requireAuth, async (req, res, next) => {
     try {
+      const user = ensureUser(req);
       const logId = parseInt(req.params.id);
       const log = await storage.getDailyLog(logId);
       
@@ -177,7 +179,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Log not found" });
       }
 
-      if (log.userId !== req.user.id) {
+      if (log.userId !== user.id) {
         return res.sendStatus(403);
       }
 
@@ -191,11 +193,12 @@ export function registerRoutes(app: Express): Server {
   // Team logs endpoints (Manager only)
   app.get("/api/team-logs", requireManager, async (req, res, next) => {
     try {
-      if (!req.user.teamId) {
+      const user = ensureUser(req);
+      if (!user.teamId) {
         return res.status(400).json({ message: "Manager not assigned to a team" });
       }
 
-      const logs = await storage.getTeamDailyLogs(req.user.teamId);
+      const logs = await storage.getTeamDailyLogs(user.teamId);
       res.json(logs);
     } catch (error) {
       next(error);
@@ -204,6 +207,7 @@ export function registerRoutes(app: Express): Server {
 
   app.post("/api/daily-logs/:id/review", requireManager, async (req, res, next) => {
     try {
+      const user = ensureUser(req);
       const logId = parseInt(req.params.id);
       const log = await storage.getDailyLog(logId);
       
@@ -212,12 +216,12 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Verify the log belongs to a team member
-      if (!req.user.teamId) {
+      if (!user.teamId) {
         return res.status(400).json({ message: "Manager not assigned to a team" });
       }
 
       const logUser = await storage.getUser(log.userId);
-      if (!logUser || logUser.teamId !== req.user.teamId) {
+      if (!logUser || logUser.teamId !== user.teamId) {
         return res.sendStatus(403);
       }
 
@@ -228,7 +232,7 @@ export function registerRoutes(app: Express): Server {
 
       const { feedback, isReviewed } = validation.data;
 
-      await storage.updateLogReview(logId, req.user.id, feedback, isReviewed);
+      await storage.updateLogReview(logId, user.id, feedback, isReviewed);
 
       // Create notification for developer
       if (isReviewed) {
@@ -236,7 +240,7 @@ export function registerRoutes(app: Express): Server {
           userId: log.userId,
           type: "log_reviewed",
           title: "Log Reviewed",
-          message: `Your log for ${log.date} has been reviewed by ${req.user.fullName}`,
+          message: `Your log for ${log.date} has been reviewed by ${user.fullName}`,
         });
       }
 
@@ -249,11 +253,12 @@ export function registerRoutes(app: Express): Server {
   // Team management endpoints
   app.get("/api/team", requireAuth, async (req, res, next) => {
     try {
-      if (!req.user.teamId) {
+      const user = ensureUser(req);
+      if (!user.teamId) {
         return res.json(null);
       }
 
-      const members = await storage.getTeamMembers(req.user.teamId);
+      const members = await storage.getTeamMembers(user.teamId);
       res.json(members);
     } catch (error) {
       next(error);
@@ -277,7 +282,8 @@ export function registerRoutes(app: Express): Server {
   // Notifications endpoints
   app.get("/api/notifications", requireAuth, async (req, res, next) => {
     try {
-      const notifications = await storage.getUserNotifications(req.user.id);
+      const user = ensureUser(req);
+      const notifications = await storage.getUserNotifications(user.id);
       res.json(notifications);
     } catch (error) {
       next(error);

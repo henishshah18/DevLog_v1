@@ -63,24 +63,23 @@ export function LogReviewModal({ isOpen, onClose, log }: LogReviewModalProps) {
 
   if (!log) return null;
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  const formatDate = (date: Date | string): string => {
+    if (typeof date === 'string') {
+      date = new Date(date);
+    }
+    return date.toLocaleDateString();
   };
 
-  const getMoodEmoji = (mood: string) => {
-    const moodMap: Record<string, string> = {
-      'very_happy': '😄',
-      'happy': '😊',
-      'neutral': '😐',
-      'sad': '😔',
-      'very_sad': '😞'
-    };
-    return moodMap[mood] || '😐';
+  const getMoodEmoji = (mood: number | string): string => {
+    const moodNumber = typeof mood === 'string' ? parseInt(mood) : mood;
+    switch (moodNumber) {
+      case 1: return '😢';
+      case 2: return '😕';
+      case 3: return '😐';
+      case 4: return '🙂';
+      case 5: return '😄';
+      default: return '😐';
+    }
   };
 
   const getProductivityColor = (score: number) => {
@@ -110,7 +109,7 @@ export function LogReviewModal({ isOpen, onClose, log }: LogReviewModalProps) {
                   <div>
                     <p className="text-sm font-medium">Date</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatDate(log.createdAt)}
+                      {log.createdAt && formatDate(log.createdAt)}
                     </p>
                   </div>
                 </div>
@@ -139,11 +138,11 @@ export function LogReviewModal({ isOpen, onClose, log }: LogReviewModalProps) {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{getMoodEmoji(log.mood || 'neutral')}</span>
+                  <span className="text-lg">{getMoodEmoji(log.mood)}</span>
                   <div>
                     <p className="text-sm font-medium">Mood</p>
                     <p className="text-xs text-muted-foreground capitalize">
-                      {(log.mood || 'neutral').replace('_', ' ')}
+                      {log.mood ? `Level ${log.mood}` : 'Not specified'}
                     </p>
                   </div>
                 </div>
@@ -192,26 +191,17 @@ export function LogReviewModal({ isOpen, onClose, log }: LogReviewModalProps) {
           )}
 
           {/* Previous Feedback */}
-          {log.isReviewed && log.managerFeedback && (
-            <div>
-              <h3 className="font-semibold mb-3">Previous Feedback</h3>
-              <Card>
-                <CardContent className="pt-4">
-                  <div className="whitespace-pre-wrap text-sm bg-muted p-3 rounded">
-                    {log.managerFeedback}
-                  </div>
-                  <Badge variant="secondary" className="mt-2">
-                    Already Reviewed
-                  </Badge>
-                </CardContent>
-              </Card>
+          {log.reviewStatus === 'reviewed' && log.managerFeedback && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Manager Feedback</h4>
+              <p className="text-sm text-muted-foreground">{log.managerFeedback}</p>
             </div>
           )}
 
           {/* Feedback Section */}
           <div>
             <h3 className="font-semibold mb-3">
-              {log.isReviewed ? "Update Feedback" : "Provide Feedback"}
+              {log.reviewStatus === 'reviewed' ? "Update Feedback" : "Provide Feedback"}
             </h3>
             <Textarea
               value={feedback}
@@ -229,6 +219,7 @@ export function LogReviewModal({ isOpen, onClose, log }: LogReviewModalProps) {
             <Button 
               onClick={handleSubmitReview}
               disabled={reviewMutation.isPending}
+              className="w-full"
             >
               {reviewMutation.isPending ? "Submitting..." : "Submit Review"}
             </Button>

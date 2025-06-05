@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import nodemailer from 'nodemailer';
 import { db } from '../../db';
 import { format } from 'date-fns';
+import { dailyLogs, users } from "@shared/schema";
+import { eq, and, not, exists } from "drizzle-orm";
 
 // Create reusable transporter object using SMTP transport
 const transporter = nodemailer.createTransport({
@@ -22,19 +24,27 @@ export default async function handler(req: Request, res: Response) {
 
   try {
     const today = format(new Date(), 'yyyy-MM-dd');
-    const usersWithoutLogs = await db.query.users.findMany({
-      where: (users, { eq, and, notExists }) => and(
-        eq(users.role, 'developer'),
-        notExists(
-          db.query.dailyLogs.findFirst({
-            where: (logs, { eq }) => and(
-              eq(logs.userId, users.id),
-              eq(logs.date, today)
+    const usersWithoutLogs = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.role, 'developer'),
+          not(
+            exists(
+              db
+                .select()
+                .from(dailyLogs)
+                .where(
+                  and(
+                    eq(dailyLogs.userId, users.id),
+                    eq(dailyLogs.date, today)
+                  )
+                )
             )
-          })
+          )
         )
-      )
-    });
+      );
 
     // Send reminder emails
     for (const user of usersWithoutLogs) {

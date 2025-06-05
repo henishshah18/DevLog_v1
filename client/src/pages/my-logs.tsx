@@ -389,10 +389,11 @@ export default function MyLogs() {
                       Blockers <span className="text-muted-foreground">(Optional)</span>
                     </FormLabel>
                     <FormControl>
-                      <Textarea 
-                        placeholder="Any blockers or challenges..."
-                        rows={3}
+                      <Textarea
                         {...field}
+                        placeholder="Any blockers or challenges?"
+                        rows={4}
+                        value={field.value || ""}
                       />
                     </FormControl>
                     <FormMessage />

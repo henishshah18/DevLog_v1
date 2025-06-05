@@ -30,6 +30,11 @@ export const dailyLogs = pgTable("daily_logs", {
   minutes: integer("minutes").notNull(),
   mood: integer("mood").notNull(), // 1-5 scale
   blockers: text("blockers"),
+  challenges: text("challenges"),
+  learnings: text("learnings"),
+  tasksCompleted: text("tasks_completed"),
+  productivityScore: integer("productivity_score"),
+  hoursWorked: integer("hours_worked"),
   reviewStatus: text("review_status").default("pending").notNull(), // 'pending' | 'reviewed'
   managerFeedback: text("manager_feedback"),
   reviewedAt: timestamp("reviewed_at"),
